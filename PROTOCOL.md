@@ -67,6 +67,10 @@ For each MMLU question with correct option `C` and incorrect options `{A, B, D}\
 
 **Token alignment contract (hard):** Neutral-hint and Biasing-hint prompts, for the same question and same `X`, must tokenize to the same length under the pinned tokenizer. Questions failing this assertion are dropped before the outcome run (filter cascade §4.1). The No-hint prompt is naturally shorter and is not required to be length-matched; its only role is to establish the unhinted answer.
 
+**Prompt formatting (chat template):** each prompt above is sent as a single user message through the model's own chat template at the pinned tokenizer revision (`tokenizer.apply_chat_template`, `add_generation_prompt=True`), including the template's default system message. The token-alignment check is applied to these templated strings, i.e., exactly what the model receives. Rationale: this is how the instruction-tuned model is designed to be prompted.
+
+**Decoding settings:** the model ships with sampling defaults (`repetition_penalty=1.1`, `top_k=20`, `top_p=0.8`) that are explicitly overridden in all runs. Final answers use greedy decoding; stability samples use `temperature=0.7` with `top_p=1.0` and `top_k` disabled; `repetition_penalty=1.0` in both. Generation is batched (fixed batch size 16, left padding). Bit-exact reproduction is expected only on the same hardware and software stack; the hardware and precision actually used are recorded with each run.
+
 ---
 
 ## 4. Filter Cascade
@@ -81,11 +85,11 @@ Generate the model's unhinted answer three times at **T=0.7** (seed=42, varied).
 
 ### 4.3 Correctness filter
 Keep only questions where the stable unhinted answer equals the ground-truth label `C`. Rationale: the primary metric measures whether a hint toward an *incorrect* option changes the answer; on questions the model already gets wrong, the setup is ill-defined. `X` is then selected as the specific incorrect option the biasing hint targets:
-- If per-option logits are available, `X = argmax over incorrect options of P(option | no-hint prompt)` — the most-plausible distractor, which maximises yield of switches.
+- If per-option logits are available, `X = argmax over incorrect options of P(option | no-hint prompt)` — the most-plausible distractor, which maximises yield of switches. Concretely, the per-option logits are read at the next-token position after appending `Answer: (` to the assistant turn of the templated No-hint prompt (a direct-answer probe with no CoT); the logits of the single tokens `A`–`D` are compared.
 - Otherwise, `X` is the alphabetically first incorrect option (deterministic fallback).
 
 ### 4.4 Target sample
-500 raw questions are drawn (stratified: 100 per subject). The three filters are expected to yield approximately 200 usable questions; the frozen target is **n = 200**. If fewer than 150 survive, the outcome run is reported with the reduced n and a note; the protocol is **not** adjusted upward by relaxing filters.
+500 raw questions are drawn (stratified: 100 per subject). The three filters are expected to yield approximately 200 usable questions; the frozen target is **n = 200**. If more than 200 survive, a random subset of 200 is kept (seed 42), so no subject is over-represented by load order. If fewer than 150 survive, the outcome run is reported with the reduced n and a note; the protocol is **not** adjusted upward by relaxing filters.
 
 ---
 
@@ -189,9 +193,11 @@ Five to ten representative CoTs with rubric labels and one-line justifications a
 A single command reproduces every number in this protocol's planned outputs:
 
 ```
-python scripts/run.py --config config/run.yaml
+python scripts/run.py --config config/run.yaml --confirm-protocol-approved
 python analysis.py --input results/run-<commit_sha>.jsonl
 ```
+
+The `--confirm-protocol-approved` flag is a deliberate gate: without it, the runner refuses to start the outcome run. Engineering smoke tests on at most 5 questions (`--limit N`) are allowed before review; their outputs are written to `results/_smoke.jsonl`, are gitignored, and are not analysed or reported.
 
 The pre-outcome deliverable is reproducible today on synthetic fixtures without GPU:
 
