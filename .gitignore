@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Model / dataset caches should never land in the repo
+.cache/
+hf_cache/
+~/.cache/huggingface/
+
+# Local outcome artifacts: results/ is tracked only via its README stub.
+# Any run output lands in results/run-*.jsonl; those are produced by the
+# gated outcome run and reviewed before being committed.
+results/*.jsonl
+results/_fixture_dryrun.jsonl
