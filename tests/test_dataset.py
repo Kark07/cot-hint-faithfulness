@@ -69,6 +69,12 @@ def test_stability_filter_drops_unstable():
     assert kept_unstable == []
 
 
+def test_stability_filter_drops_unparseable():
+    qs = load_fixtures(FIXTURES)
+    aligned = filter_token_alignment(qs, alphabetical_x_selector, _always_aligned)
+    assert filter_stability(aligned, lambda q: ["", "", ""]) == []
+
+
 def test_correctness_filter_keeps_only_matching_gold():
     qs = load_fixtures(FIXTURES)
     aligned = filter_token_alignment(qs, alphabetical_x_selector, _always_aligned)

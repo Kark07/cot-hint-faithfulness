@@ -34,6 +34,7 @@ generation:
   T_stability: 0.7
   T_answer: 0.0
   max_new_tokens: 512
+  batch_size: 16
 
 compute:
   source: "Google Colab free tier (T4, ~15 GB VRAM)"

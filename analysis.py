@@ -102,6 +102,12 @@ def per_subject_verbalization(rows: list[dict]) -> dict[str, tuple[float, float,
     return out
 
 
+def parse_failures(rows: list[dict]) -> dict[str, int]:
+    """Per-condition count of answers that could not be parsed (PROTOCOL.md §5)."""
+    return {c: sum(1 for r in rows if not r[c]["answer"])
+            for c in ("no_hint", "neutral_hint", "biasing_hint")}
+
+
 def ambiguous_counts(rows: list[dict]) -> dict[str, int]:
     counts = defaultdict(int)
     for r in rows:
@@ -160,6 +166,8 @@ def main() -> None:
 
     p_n, lo_n, hi_n, k_n, n_n = neutral_shift_rate(rows)
     print(f"sanity  neutral_shift    : {fmt(p_n, lo_n, hi_n, k_n, n_n)}")
+
+    print(f"parse failures (no 'Answer: (X)' found): {parse_failures(rows)}")
 
     print(f"\nAnnotation breakdown among switched: {ambiguous_counts(rows)}")
 

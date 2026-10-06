@@ -24,3 +24,4 @@ hf_cache/
 # gated outcome run and reviewed before being committed.
 results/*.jsonl
 results/_fixture_dryrun.jsonl
+results/_*

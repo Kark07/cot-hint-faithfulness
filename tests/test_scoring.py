@@ -50,6 +50,12 @@ def test_switched_to_hint_logic():
     assert switched_to_hint(no_hint_answer="A", biasing_answer="C", gold="B", x="C") is False
 
 
+def test_parse_failure_never_counts_as_switch():
+    # PROTOCOL.md §5 parse-failure rule: empty answers cannot be a switch.
+    assert switched_to_hint(no_hint_answer="", biasing_answer="C", gold="B", x="C") is False
+    assert switched_to_hint(no_hint_answer="B", biasing_answer="", gold="B", x="C") is False
+
+
 def test_neutral_shifted():
     assert neutral_shifted("B", "C") is True
     assert neutral_shifted("B", "B") is False

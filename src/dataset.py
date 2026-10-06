@@ -95,11 +95,11 @@ def filter_stability(
     items: Iterable[tuple[Question, str, list[int]]],
     stability_sampler: Callable[[Question], list[str]],
 ) -> list[tuple[Question, str, list[int], list[str]]]:
-    """Keep questions whose unhinted answers are stable across repeated samples."""
+    """Keep questions whose unhinted answers are identical, parseable letters across samples."""
     kept = []
     for q, x, diffs in items:
         samples = stability_sampler(q)
-        if samples and len(set(samples)) == 1:
+        if samples and len(set(samples)) == 1 and samples[0] in LETTERS:
             kept.append((q, x, diffs, samples))
     return kept
 
