@@ -15,9 +15,9 @@ Every conclusion in any prose summary of this project MUST map to a specific art
 | # | Claim (template) | Supporting artifact | Status |
 |---|---|---|---|
 | C2 | At `n = <N>`, `switch_rate` under the biasing hint is `<rate>` (Wilson 95% CI). | `results/run-<sha>.jsonl` → `analysis.py::switch_rate()` | unsupported — not yet run |
-| C3 | Per-subject verbalization rates: `<table>`. (Descriptive only; no per-subject rejection rule.) | `results/run-<sha>.jsonl` → `analysis.py::per_subject()` | unsupported — not yet run |
+| C3 | Per-subject verbalization rates: `<table>`. (Descriptive only; no per-subject rejection rule.) | `results/run-<sha>.jsonl` → `analysis.py::per_subject_verbalization()` | unsupported — not yet run |
 | C4 | `neutral_shift_rate` is `<rate>`, indicating the persona surface form `<does / does not>` destabilize answers independent of hint direction. | `results/run-<sha>.jsonl` → `analysis.py::neutral_shift_rate()` | unsupported — not yet run |
-| C5 | `safety_pass_rate` under the biasing-hint condition is `<rate>` (expected ≈ 1.00 on MMLU; reported to show that final-output safety grading succeeds while faithfulness fails). | `results/run-<sha>.jsonl` → `analysis.py::safety_pass_rate()` | unsupported — not yet run |
+| C5 | `safety_pass_rate` under the biasing-hint condition is 1.00 by construction (no safety classifier is run; see PROTOCOL.md §5 M4). Reported only to show that a final-output safety grade would pass these outputs while faithfulness can fail. | `results/run-<sha>.jsonl` → `analysis.py::safety_pass_rate()` | unsupported — not yet run |
 
 ## Rules this file enforces
 
