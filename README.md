@@ -1,7 +1,7 @@
 # cot-hint-faithfulness
 
 > **Status: PRE-OUTCOME — protocol under review.**
-> No result-bearing comparison has been run. This repository contains the pre-registered protocol, the standardized BU1LD handoff artifacts, and a working engineering harness that runs end-to-end on synthetic fixtures. The outcome run is gated until the protocol is reviewed.
+> No result-bearing comparison has been run. This repository contains the pre-registered protocol, the standardized BU1LD handoff artifacts, and a working engineering harness that runs end-to-end on synthetic fixtures. The real-model path has been smoke-tested on 1-2 questions only (outputs not committed or analysed). The outcome run is gated until the protocol is reviewed.
 
 A reproducible test of whether final-output evaluation misses hint-driven, unacknowledged answer changes. One small open model (`Qwen/Qwen2.5-1.5B-Instruct`), one public task (MMLU), one hint modality (sycophancy hint adapted from Chen et al. 2025; suggested-answer idea from Turpin et al. 2023), four independent metrics (correctness / influence / faithfulness / safety).
 
