@@ -5,7 +5,7 @@ Changes after the October 6 handoff. The scientific protocol (`PROTOCOL.md`) is 
 ## Harness corrections from the October 6 source review
 
 Reviewed revision: `861244905eede2cc183a07a5215b3a133e4f26fa` (pointer commit `7d911f4ba0fa69030927ad87a22d533403af54cd`).
-Diff: `git diff 7d911f4..<new freeze SHA recorded in FREEZE.json>`
+Diff: `git diff 7d911f4..a295e47` (active freeze `a295e47a72fb80ab87e6b9b83f34c25fedff52f2`)
 
 **Not changed:** model and dataset revisions, sample and filter rules, seeds, prompts and hint definitions, metric definitions, decision thresholds, `PROTOCOL.md`, `config/run.yaml`, `src/prompts.py`, `src/dataset.py`, `src/scoring.py`, `src/metrics.py`, `src/schema.py`, `examples/`. No outcome run has been performed.
 

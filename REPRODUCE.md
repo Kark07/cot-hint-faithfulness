@@ -50,4 +50,4 @@ Exact pins live in `requirements.txt`. Model and dataset revisions are recorded 
 
 ## Active freeze
 
-The active pre-result freeze commit is `ACTIVE_FREEZE_PENDING`, recorded in `FREEZE.json` as `pre_result_commit_sha`. Earlier freezes, and why each was superseded before any outcome, are listed in `FREEZE.json` under `freeze_history`. `PROTOCOL.md` and `config/run.yaml` are unchanged since the original October 6 freeze (`861244905eede2cc183a07a5215b3a133e4f26fa`).
+The active pre-result freeze commit is `a295e47a72fb80ab87e6b9b83f34c25fedff52f2`, recorded in `FREEZE.json` as `pre_result_commit_sha`. Earlier freezes, and why each was superseded before any outcome, are listed in `FREEZE.json` under `freeze_history`. `PROTOCOL.md` and `config/run.yaml` are unchanged since the original October 6 freeze (`861244905eede2cc183a07a5215b3a133e4f26fa`).

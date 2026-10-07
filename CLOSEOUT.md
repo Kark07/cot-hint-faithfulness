@@ -4,7 +4,7 @@
 
 **Update, October 7, 2026:** the October 6 source review did not approve the outcome run and requested three harness corrections (durable attempt records, compute deadline throughout inference, exclusive attempt path). They are implemented with synthetic tests; see `CHANGELOG.md` and `receipts/`. The original freeze is preserved in `FREEZE.json` (`freeze_history`).
 
-**Active freeze:** `ACTIVE_FREEZE_PENDING` (recorded in `FREEZE.json` as `pre_result_commit_sha`). The scientific protocol is unchanged from the original freeze.
+**Active freeze:** `a295e47a72fb80ab87e6b9b83f34c25fedff52f2` (recorded in `FREEZE.json` as `pre_result_commit_sha`). The scientific protocol is unchanged from the original freeze.
 
 **Reason:** awaiting review of the harness corrections; the outcome run is not approved and has not been run. The pre-outcome deliverables (`PROTOCOL.md`, `FREEZE.json`, harness implementation, `analysis.py` on fixtures, hand-scored annotation examples) were handed off under freeze commit SHA `861244905eede2cc183a07a5215b3a133e4f26fa` (the original October 6 freeze). No outcome claims are made and `CLAIMS.md` currently lists every row as `unsupported — not yet run`.
 

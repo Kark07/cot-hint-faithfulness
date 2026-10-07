@@ -1,7 +1,7 @@
 {
   "protocol_version": "v1.0",
-  "freeze_timestamp_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
-  "pre_result_commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
+  "freeze_timestamp_utc": "2026-10-07T05:45:34Z",
+  "pre_result_commit_sha": "a295e47a72fb80ab87e6b9b83f34c25fedff52f2",
   "freeze_pointer_note": "A commit cannot contain its own SHA. The active freeze commit is an empty commit; the commit right after it writes that SHA here. At the freeze commit itself this field reads PENDING.",
   "protocol_text_frozen_at": {
     "commit_sha": "861244905eede2cc183a07a5215b3a133e4f26fa",
@@ -22,8 +22,8 @@
       "reason": "Harness corrections requested in the October 6 source review: durable incremental progress and attempt records, compute deadline enforced throughout inference, exclusive attempt path with collisions refused. Model and dataset revisions, sample and filter rules, seeds, hint definitions, metrics and thresholds are unchanged. See CHANGELOG.md."
     },
     {
-      "commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
-      "date_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
+      "commit_sha": "a295e47a72fb80ab87e6b9b83f34c25fedff52f2",
+      "date_utc": "2026-10-07T05:45:34Z",
       "status": "active freeze",
       "reason": "Successor to 8612449 containing only the harness corrections above."
     }
