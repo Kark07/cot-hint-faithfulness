@@ -25,7 +25,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.runner import dry_run, real_run  # noqa: E402
+from src.runner import (  # noqa: E402
+    AttemptCollision, ComputeCapExceeded, attempt_dir_for, dry_run, real_run,
+)
 
 SMOKE_MAX = 5
 
@@ -87,10 +89,25 @@ def main() -> int:
             return 2
         out = ROOT / "results" / f"run-{_git('rev-parse', 'HEAD')}.jsonl"
 
-    log = real_run(cfg, out, limit=args.limit, max_new_tokens=args.max_new_tokens,
-                   keep_filtered=smoke)
+    # Smoke outputs are gitignored scratch and may be replaced; outcome attempts never are.
+    try:
+        log = real_run(cfg, out, limit=args.limit, max_new_tokens=args.max_new_tokens,
+                       keep_filtered=smoke, replace_existing=smoke,
+                       commit=_git("rev-parse", "HEAD"))
+    except AttemptCollision as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 3
+    except ComputeCapExceeded as e:
+        print(f"INCOMPLETE: {e}. No final output was written. The attempt record is kept at "
+              f"{attempt_dir_for(out)} (status: deadline_expired).", file=sys.stderr)
+        return 4
+    except BaseException:
+        print(f"ATTEMPT DID NOT COMPLETE. The attempt record is kept at {attempt_dir_for(out)}.",
+              file=sys.stderr)
+        raise
     print(f"[{'smoke' if smoke else 'outcome'}] wrote {log['n_retained']} rows to {out}")
     print(f"filter log: {out}.filters.json")
+    print(f"attempt record: {attempt_dir_for(out)}")
     return 0
 
 

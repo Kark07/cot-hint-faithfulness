@@ -49,18 +49,20 @@ class ModelHandle:
             tokenize=False, add_generation_prompt=True,
         )
 
-    def generate_all(
+    def generate_batches(
         self,
         user_texts: list[str],
         temperature: float,
         seed: int,
         max_new_tokens: int,
         batch_size: int = 16,
-    ) -> list[str]:
-        """Generate one completion per prompt, in input order.
+    ):
+        """Yield one list of completions per batch, in input order.
 
         The seed is set once per call; batches run in a fixed order, so the
         sampled outputs are determined by (seed, batch_size, input order, hardware).
+        Yielding per batch lets the runner persist progress and enforce the
+        compute deadline between batches.
         """
         import torch
 
@@ -77,7 +79,6 @@ class ModelHandle:
         else:
             decode.update(temperature=None, top_p=None, top_k=None)
 
-        out: list[str] = []
         for i in range(0, len(user_texts), batch_size):
             texts = [self.chat(t) for t in user_texts[i:i + batch_size]]
             enc = self.tokenizer(texts, return_tensors="pt", padding=True,
@@ -85,8 +86,7 @@ class ModelHandle:
             with torch.no_grad():
                 gen = self.model.generate(**enc, **decode)
             new = gen[:, enc.input_ids.shape[1]:]
-            out.extend(self.tokenizer.batch_decode(new, skip_special_tokens=True))
-        return out
+            yield self.tokenizer.batch_decode(new, skip_special_tokens=True)
 
     def answer_letter_logits(self, user_text: str) -> dict[str, float]:
         """Direct-answer probe (PROTOCOL.md §4.3): logits of A-D after 'Answer: ('."""
