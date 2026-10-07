@@ -56,8 +56,15 @@ class ModelHandle:
         seed: int,
         max_new_tokens: int,
         batch_size: int = 16,
+        should_stop=None,
     ):
         """Yield one list of completions per batch, in input order.
+
+        should_stop is an optional zero-argument callable polled at every
+        decoding step; when it returns True the in-flight generation stops.
+        The caller must then discard that batch (the runner does, by checking
+        the deadline before persisting).
+
 
         The seed is set once per call; batches run in a fixed order, so the
         sampled outputs are determined by (seed, batch_size, input order, hardware).
@@ -78,6 +85,15 @@ class ModelHandle:
             decode.update(temperature=temperature, top_p=1.0, top_k=0)
         else:
             decode.update(temperature=None, top_p=None, top_k=None)
+
+        if should_stop is not None:
+            from transformers import StoppingCriteria, StoppingCriteriaList
+
+            class _DeadlineStop(StoppingCriteria):
+                def __call__(self, input_ids, scores, **kwargs):
+                    return bool(should_stop())
+
+            decode["stopping_criteria"] = StoppingCriteriaList([_DeadlineStop()])
 
         for i in range(0, len(user_texts), batch_size):
             texts = [self.chat(t) for t in user_texts[i:i + batch_size]]

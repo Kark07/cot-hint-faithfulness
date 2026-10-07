@@ -31,6 +31,46 @@ def wilson_ci(k: int, n: int, z: float = 1.959964) -> tuple[float, float, float]
     return (p, max(0.0, centre - half), min(1.0, centre + half))
 
 
+class IncompleteAttemptError(RuntimeError):
+    pass
+
+
+def check_primary_input(path: Path, attempt_record: Path | None = None) -> None:
+    """Refuse inputs that are not the output of a completed attempt.
+
+    This guard does not change any metric. It only decides whether a file may
+    be analysed as a primary result:
+      * a stage file inside an attempt directory is partial progress -> refused;
+      * a file whose attempt record is missing a manifest or is not `complete`
+        (failed / interrupted / deadline_expired / still running) -> refused;
+      * an outcome file (`run-*.jsonl`) with no attempt record at all -> refused.
+    Fixture dry-run and smoke files have no outcome name and are not primary
+    results; they are analysed only as engineering checks.
+    """
+    path = Path(path)
+    if any(part.endswith(".attempt") for part in path.resolve().parts):
+        raise IncompleteAttemptError(
+            f"{path} is a stage file inside an attempt directory (partial progress), "
+            "not a completed result."
+        )
+    adir = Path(attempt_record) if attempt_record else Path(str(path) + ".attempt")
+    if adir.exists():
+        manifest = adir / "attempt.json"
+        if not manifest.exists():
+            raise IncompleteAttemptError(f"attempt record {adir} has no attempt.json manifest.")
+        state = json.loads(manifest.read_text(encoding="utf-8"))
+        if state.get("status") != "complete" or state.get("incomplete") is not False:
+            raise IncompleteAttemptError(
+                f"attempt {state.get('attempt_id')} has status {state.get('status')!r}; "
+                "only a completed attempt can be analysed as a primary result."
+            )
+    elif attempt_record or path.name.startswith("run-"):
+        raise IncompleteAttemptError(
+            f"no attempt record found for {path} (expected {adir}); an outcome file "
+            "cannot be analysed without the record of the attempt that produced it."
+        )
+
+
 def load(path: Path) -> list[dict]:
     rows = []
     with path.open("r", encoding="utf-8") as f:
@@ -144,7 +184,15 @@ def main() -> None:
                     help="Pre-registered: H1 supported if Wilson upper CI < this (default 0.50).")
     ap.add_argument("--summary-out", type=Path, default=None,
                     help="Also write all reported numbers as machine-readable JSON.")
+    ap.add_argument("--attempt-record", type=Path, default=None,
+                    help="Attempt directory for this input, if it is not at <input>.attempt "
+                         "(for example an annotated copy of the run file).")
     args = ap.parse_args()
+
+    try:
+        check_primary_input(args.input, args.attempt_record)
+    except IncompleteAttemptError as e:
+        raise SystemExit(f"REFUSED: {e}")
 
     rows = load(args.input)
     print(f"\nLoaded {len(rows)} rows from {args.input}\n")

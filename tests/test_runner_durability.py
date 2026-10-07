@@ -6,15 +6,20 @@ incremental persistence, failure/interrupt records, and deadline enforcement.
 """
 
 import json
+import sys
+import threading
 from pathlib import Path
 
 import pytest
 
 from src.dataset import load_fixtures
-from src.runner import (
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import analysis  # noqa: E402
+from src.runner import (  # noqa: E402
     AttemptCollision,
     ComputeCapExceeded,
     attempt_dir_for,
+    claim_attempt,
     filters_path_for,
     real_run,
 )
@@ -58,13 +63,18 @@ class FakeHandle:
     precision = "fake"
     device_name = "fake-device"
 
-    def __init__(self, gold_by_stem, on_probe=None, on_batch=None):
+    STEPS_PER_BATCH = 8      # simulated decoding steps, where should_stop is polled
+
+    def __init__(self, gold_by_stem, on_probe=None, on_batch=None, on_step=None):
         self.tokenizer = _ConstTokenizer()
         self.gold_by_stem = gold_by_stem
         self.on_probe = on_probe
         self.on_batch = on_batch
+        self.on_step = on_step
         self.probe_calls = 0
         self.batch_calls = 0
+        self.steps_run = []          # decoding steps actually run, per batch
+        self.stopped_in_flight = 0
 
     def chat(self, user_text):
         return "<chat>" + user_text
@@ -79,21 +89,36 @@ class FakeHandle:
         gold = self._gold(user_text)
         return {L: (5.0 if L == gold else 1.0) for L in "ABCD"}
 
-    def generate_batches(self, user_texts, temperature, seed, max_new_tokens, batch_size=16):
+    def generate_batches(self, user_texts, temperature, seed, max_new_tokens, batch_size=16,
+                         should_stop=None):
         for i in range(0, len(user_texts), batch_size):
             self.batch_calls += 1
             if self.on_batch:
                 self.on_batch(self.batch_calls)
-            yield [f"Reasoning. Answer: ({self._gold(t)})" for t in user_texts[i:i + batch_size]]
+            steps, stopped = 0, False
+            for step in range(self.STEPS_PER_BATCH):
+                if should_stop is not None and should_stop():
+                    stopped = True
+                    break
+                if self.on_step:
+                    self.on_step(self.batch_calls, step)
+                steps += 1
+            self.steps_run.append(steps)
+            self.stopped_in_flight += stopped
+            if stopped:
+                yield ["TRUNCATED" for _ in user_texts[i:i + batch_size]]
+            else:
+                yield [f"Reasoning. Answer: ({self._gold(t)})" for t in user_texts[i:i + batch_size]]
 
 
-def _run(tmp_path, clock=None, on_probe=None, on_batch=None, out_name="run-fakesha.jsonl", **kw):
+def _run(tmp_path, clock=None, on_probe=None, on_batch=None, on_step=None,
+         out_name="run-fakesha.jsonl", **kw):
     questions = load_fixtures(FIXTURES)
     gold = {q.stem: q.gold_letter for q in questions}
     made = []
 
     def factory(cfg):
-        h = FakeHandle(gold, on_probe=on_probe, on_batch=on_batch)
+        h = FakeHandle(gold, on_probe=on_probe, on_batch=on_batch, on_step=on_step)
         made.append(h)
         return h
 
@@ -129,8 +154,18 @@ def test_complete_run_writes_outputs_and_complete_record(tmp_path):
     assert a["status"] == "complete" and a["incomplete"] is False
     assert a["completed_stages"] == ["probe", "stability", "no_hint", "neutral_hint",
                                      "biasing_hint", "finalize"]
-    assert a["commit"] == "fakesha"
+    assert a["commit"] == "fakesha"                       # immutable experiment revision
+    assert len(a["attempt_id"]) == 32                     # unique attempt id
+    assert a["wall_clock_overshoot_seconds"] == 0.0
+    assert json.loads(filters_path_for(out).read_text(encoding="utf-8"))["attempt_id"] == a["attempt_id"]
     adir = attempt_dir_for(out)
+    row = _lines(adir / "stability-seed43.jsonl")[0]
+    assert (row["stage"], row["condition"], row["seed"]) == ("stability-seed43", "no_hint", 43)
+    assert row["attempt_id"] == a["attempt_id"] and row["qid"]
+    row = _lines(adir / "biasing_hint.jsonl")[0]
+    assert (row["stage"], row["condition"], row["seed"]) == ("biasing_hint", "biasing_hint", 42)
+    row = _lines(adir / "probe.jsonl")[0]
+    assert (row["stage"], row["condition"]) == ("probe", "no_hint") and row["qid"]
     for stage in ("probe", "stability-seed42", "stability-seed43", "stability-seed44",
                   "no_hint", "neutral_hint", "biasing_hint"):
         assert len(_lines(adir / f"{stage}.jsonl")) == N_Q
@@ -179,21 +214,42 @@ def test_second_run_after_interrupted_attempt_is_refused(tmp_path):
     out, _, call = _run(tmp_path, on_batch=boom)
     with pytest.raises(KeyboardInterrupt):
         call()
-    record_before = (attempt_dir_for(out) / "attempt.json").read_text(encoding="utf-8")
+    snapshot = lambda: {p.name: p.read_bytes() for p in sorted(attempt_dir_for(out).iterdir())}  # noqa: E731
+    before = snapshot()
+    assert json.loads(before["attempt.json"])["status"] == "interrupted"
 
     out2, made2, call2 = _run(tmp_path)
     with pytest.raises(AttemptCollision):
         call2()
-    assert made2 == []
-    assert (attempt_dir_for(out) / "attempt.json").read_text(encoding="utf-8") == record_before
+    assert made2 == []                  # refused before model initialisation
+    assert snapshot() == before         # interrupted artifact byte-identical
 
 
-def test_smoke_mode_may_replace_its_own_scratch_output(tmp_path):
-    out, _, call = _run(tmp_path, out_name="_smoke.jsonl", replace_existing=True)
-    call()
-    out2, made2, call2 = _run(tmp_path, out_name="_smoke.jsonl", replace_existing=True)
-    call2()
-    assert _attempt(out2)["status"] == "complete" and len(made2) == 1
+def test_runner_has_no_overwrite_option():
+    import inspect
+    assert "replace_existing" not in inspect.signature(real_run).parameters
+    assert list(inspect.signature(claim_attempt).parameters) == ["out_path"]
+
+
+def test_concurrent_claims_only_one_succeeds(tmp_path):
+    out = tmp_path / "run-fakesha.jsonl"
+    n = 16
+    barrier = threading.Barrier(n)
+    wins, losses = [], []
+
+    def claim():
+        barrier.wait()
+        try:
+            wins.append(claim_attempt(out))
+        except AttemptCollision:
+            losses.append(1)
+
+    threads = [threading.Thread(target=claim) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(wins) == 1 and len(losses) == n - 1
 
 
 # ---------------------------------------------------------------------------
@@ -330,3 +386,115 @@ def test_deadline_checked_at_finalize_even_with_all_batches_in_time(tmp_path):
     assert a["status"] == "deadline_expired" and a["stage"] == "finalize"
     assert a["completed_stages"][-1] == "biasing_hint"
     assert not out.exists()
+
+
+def test_deadline_expires_during_final_biasing_condition(tmp_path):
+    clock = FakeClock()
+    target = 5 * N_BATCHES_PER_STAGE + 2    # 2nd batch of the biasing condition
+
+    def slow(n):
+        if n == target:
+            clock.now = 4000.0
+    out, made, call = _run(tmp_path, clock=clock, on_batch=slow)
+    with pytest.raises(ComputeCapExceeded):
+        call()
+    a = _attempt(out)
+    assert a["status"] == "deadline_expired" and a["incomplete"] is True
+    assert a["stage"] == "biasing_hint"
+    assert a["completed_stages"] == ["probe", "stability", "no_hint", "neutral_hint"]
+    assert made[0].batch_calls == target            # no new work after the deadline
+    adir = attempt_dir_for(out)
+    assert len(_lines(adir / "neutral_hint.jsonl")) == N_Q      # earlier progress retained
+    assert len(_lines(adir / "biasing_hint.jsonl")) == BATCH
+    assert not out.exists() and not filters_path_for(out).exists()
+
+
+def test_in_flight_generation_is_stopped_at_the_deadline(tmp_path):
+    """The deadline passes in the middle of a batch: decoding must stop early
+    instead of running the batch to the end, and the batch is discarded."""
+    clock = FakeClock()
+
+    def mid_batch(batch, step):
+        if batch == 2 and step == 2:
+            clock.now = 3700.0          # 100 s past the 3600 s cap
+    out, made, call = _run(tmp_path, clock=clock, on_step=mid_batch)
+    with pytest.raises(ComputeCapExceeded):
+        call()
+    h = made[0]
+    assert h.stopped_in_flight == 1
+    assert h.steps_run == [FakeHandle.STEPS_PER_BATCH, 3]   # stopped after step 2, not run to 8
+    a = _attempt(out)
+    assert a["status"] == "deadline_expired" and a["stage"] == "stability-seed42"
+    rows = _lines(attempt_dir_for(out) / "stability-seed42.jsonl")
+    assert len(rows) == BATCH and all("TRUNCATED" not in r["output"] for r in rows)
+    # Measured elapsed time and overshoot are recorded with the terminal state.
+    assert a["elapsed_seconds"] == 3700.0
+    assert a["wall_clock_overshoot_seconds"] == 100.0
+    assert a["wall_clock_cap_seconds"] == 3600.0
+    assert "not metered GPU time" in a["timing_note"]
+
+
+# ---------------------------------------------------------------------------
+# The primary-result path (analysis.py) refuses anything but a completed attempt
+# ---------------------------------------------------------------------------
+
+def test_analysis_accepts_a_completed_attempt(tmp_path):
+    out, _, call = _run(tmp_path)
+    call()
+    analysis.check_primary_input(out)       # no exception
+
+
+def test_analysis_refuses_failed_attempt_and_its_stage_files(tmp_path):
+    def boom(n):
+        if n == 5:
+            raise RuntimeError("simulated failure")
+    out, _, call = _run(tmp_path, on_batch=boom)
+    with pytest.raises(RuntimeError):
+        call()
+    adir = attempt_dir_for(out)
+    # 1) retained partial progress cannot be analysed as a result
+    with pytest.raises(analysis.IncompleteAttemptError, match="partial progress"):
+        analysis.check_primary_input(adir / "stability-seed42.jsonl")
+    # 2) even if someone hand-builds the output file, the failed record blocks it
+    out.write_text((adir / "stability-seed42.jsonl").read_text(encoding="utf-8"), encoding="utf-8")
+    with pytest.raises(analysis.IncompleteAttemptError, match="'failed'"):
+        analysis.check_primary_input(out)
+
+
+def test_analysis_refuses_deadline_expired_attempt(tmp_path):
+    clock = FakeClock()
+
+    def slow(n):
+        if n == 2:
+            clock.now = 4000.0
+    out, _, call = _run(tmp_path, clock=clock, on_batch=slow)
+    with pytest.raises(ComputeCapExceeded):
+        call()
+    out.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(analysis.IncompleteAttemptError, match="'deadline_expired'"):
+        analysis.check_primary_input(out)
+
+
+def test_analysis_refuses_outcome_file_with_no_attempt_record(tmp_path):
+    orphan = tmp_path / "run-deadbeef.jsonl"
+    orphan.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(analysis.IncompleteAttemptError, match="no attempt record"):
+        analysis.check_primary_input(orphan)
+
+
+def test_analysis_still_runs_on_fixture_dryrun_files(tmp_path):
+    f = tmp_path / "_fixture_dryrun.jsonl"
+    f.write_text("{}\n", encoding="utf-8")
+    analysis.check_primary_input(f)         # engineering file, not a primary result
+
+
+def test_smoke_scratch_helper_only_touches_smoke_paths(tmp_path):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import run as run_script
+    with pytest.raises(ValueError):
+        run_script._clear_smoke_scratch(tmp_path / "run-fakesha.jsonl")
+    smoke = tmp_path / "_smoke.jsonl"
+    smoke.write_text("x", encoding="utf-8")
+    attempt_dir_for(smoke).mkdir()
+    run_script._clear_smoke_scratch(smoke)
+    assert not smoke.exists() and not attempt_dir_for(smoke).exists()

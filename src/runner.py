@@ -12,9 +12,9 @@ import hashlib
 import json
 import os
 import random
-import shutil
 import time
 import traceback
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -236,10 +236,16 @@ class Deadline:
     def elapsed(self) -> float:
         return self._clock() - self._t0
 
+    def expired(self) -> bool:
+        return self.elapsed() > self.cap_seconds
+
+    def overshoot(self) -> float:
+        return max(0.0, self.elapsed() - self.cap_seconds)
+
     def check(self, stage: str) -> None:
-        if self.elapsed() > self.cap_seconds:
+        if self.expired():
             raise ComputeCapExceeded(
-                f"compute cap of {self.cap_seconds:.0f}s exceeded during stage: {stage}"
+                f"wall-clock cap of {self.cap_seconds:.0f}s exceeded during stage: {stage}"
             )
 
 
@@ -251,23 +257,21 @@ def filters_path_for(out_path: Path) -> Path:
     return Path(str(out_path) + ".filters.json")
 
 
-def claim_attempt(out_path: Path, replace_existing: bool = False) -> Path:
+def claim_attempt(out_path: Path) -> Path:
     """Exclusively claim the attempt directory for out_path, or refuse.
 
-    replace_existing is for smoke tests only (their scratch outputs are
-    gitignored and never reported); the outcome run never passes it.
+    There is no overwrite option. os.mkdir is atomic, so of several concurrent
+    claims on the same path exactly one succeeds.
     """
     adir = attempt_dir_for(out_path)
     targets = (out_path, filters_path_for(out_path), adir)
     existing = [p for p in targets if p.exists()]
-    if existing and not replace_existing:
+    if existing:
         raise AttemptCollision(
             "refusing to start: output or attempt record already exists for this run: "
             + ", ".join(str(p) for p in existing)
             + ". Existing records are never overwritten."
         )
-    for p in existing:
-        shutil.rmtree(p) if p.is_dir() else p.unlink()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         os.mkdir(adir)
@@ -311,7 +315,6 @@ def real_run(
     limit: int | None = None,
     max_new_tokens: int | None = None,
     keep_filtered: bool = False,
-    replace_existing: bool = False,
     commit: str | None = None,
     handle_factory: Callable[[dict], object] = _default_handle_factory,
     question_loader: Callable[[dict], list[Question]] = _default_question_loader,
@@ -329,13 +332,14 @@ def real_run(
     from .prompts import select_hint_target
 
     out_path = Path(out_path)
-    adir = claim_attempt(out_path, replace_existing=replace_existing)
+    adir = claim_attempt(out_path)
 
     m, d, g, seeds = cfg["model"], cfg["dataset"], cfg["generation"], cfg["seeds"]
     deadline = Deadline(float(cfg["compute"]["gpu_hour_cap"]) * 3600, clock)
     mnt = max_new_tokens or int(g["max_new_tokens"])
     bs = int(g.get("batch_size", 16))
     run_id = _utc_now()
+    attempt_id = uuid.uuid4().hex
 
     state: dict = {
         "status": "running",
@@ -344,11 +348,15 @@ def real_run(
         "completed_stages": [],
         "progress": {},
         "error": None,
+        "attempt_id": attempt_id,
         "run_id": run_id,
         "commit": commit,
         "output_path": out_path.name,
         "started_utc": run_id,
-        "compute_cap_seconds": deadline.cap_seconds,
+        "wall_clock_cap_seconds": deadline.cap_seconds,
+        "wall_clock_overshoot_seconds": 0.0,
+        "timing_note": "elapsed_seconds is wall-clock time for the whole attempt, including "
+                       "model and dataset loading. It is a coarse cap, not metered GPU time.",
         "limit": limit, "max_new_tokens": mnt, "batch_size": bs, "keep_filtered": keep_filtered,
         "config": cfg,
         "note": "status 'running' with no live process means the attempt was killed "
@@ -359,6 +367,7 @@ def real_run(
         state.update(updates)
         state["updated_utc"] = _utc_now()
         state["elapsed_seconds"] = round(deadline.elapsed(), 1)
+        state["wall_clock_overshoot_seconds"] = round(deadline.overshoot(), 1)
         _write_json_atomic(adir / "attempt.json", state)
 
     def stage_done(name: str) -> None:
@@ -373,7 +382,7 @@ def real_run(
             qs = qs[:limit]
         save(precision_used=handle.precision, device=handle.device_name, n_raw=len(qs))
 
-        def run_generation(stage: str, qids: list[str], prompts: list[str],
+        def run_generation(stage: str, condition: str, qids: list[str], prompts: list[str],
                            temperature: float, seed: int) -> list[str]:
             """Generate batch by batch; append each batch to <stage>.jsonl as it lands."""
             save(stage=stage)
@@ -383,14 +392,17 @@ def real_run(
                 deadline.check(stage)
                 for texts in handle.generate_batches(
                     prompts, temperature=temperature, seed=seed,
-                    max_new_tokens=mnt, batch_size=bs,
+                    max_new_tokens=mnt, batch_size=bs, should_stop=deadline.expired,
                 ):
-                    # A batch that finished after the deadline is not persisted.
+                    # A batch that finished (or was stopped in flight) after the
+                    # deadline is not persisted.
                     deadline.check(stage)
                     for t in texts:
-                        _fsync_write(f, json.dumps(
-                            {"qid": qids[len(outs)], "output": t, "answer": extract_answer(t)}
-                        ) + "\n")
+                        _fsync_write(f, json.dumps({
+                            "attempt_id": attempt_id, "stage": stage, "condition": condition,
+                            "seed": seed, "temperature": temperature,
+                            "qid": qids[len(outs)], "output": t, "answer": extract_answer(t),
+                        }) + "\n")
                         outs.append(t)
                     state["progress"][stage]["done"] = len(outs)
                     save()
@@ -406,7 +418,10 @@ def real_run(
                 logits = handle.answer_letter_logits(build_prompt(q, "no_hint"))
                 deadline.check("probe")
                 probe[q.qid] = logits
-                _fsync_write(f, json.dumps({"qid": q.qid, "option_logits": logits}) + "\n")
+                _fsync_write(f, json.dumps({
+                    "attempt_id": attempt_id, "stage": "probe", "condition": "no_hint",
+                    "seed": None, "qid": q.qid, "option_logits": logits,
+                }) + "\n")
                 state["progress"]["probe"]["done"] = len(probe)
         stage_done("probe")
 
@@ -432,7 +447,7 @@ def real_run(
         nh_prompts = [build_prompt(q, "no_hint") for q, _, _ in aligned]
         samples: list[list[str]] = [[] for _ in aligned]
         for s in seeds["stability"]:
-            outs = run_generation(f"stability-seed{int(s)}", aligned_ids, nh_prompts,
+            outs = run_generation(f"stability-seed{int(s)}", "no_hint", aligned_ids, nh_prompts,
                                   float(g["T_stability"]), int(s))
             for i, o in enumerate(outs):
                 samples[i].append(extract_answer(o))
@@ -462,7 +477,7 @@ def real_run(
         for cond in ("no_hint", "neutral_hint", "biasing_hint"):
             prompts = [build_prompt(q, cond, x_letter=x if cond == "biasing_hint" else None)
                        for q, x, _, _ in retained]
-            outs = run_generation(cond, retained_ids, prompts, float(g["T_answer"]),
+            outs = run_generation(cond, cond, retained_ids, prompts, float(g["T_answer"]),
                                   int(seeds["final_answer_generation"]))
             gens[cond] = [{"prompt": handle.chat(p), "cot": o, "answer": extract_answer(o)}
                           for p, o in zip(prompts, outs)]
@@ -473,6 +488,7 @@ def real_run(
         deadline.check("finalize")
 
         log = {
+            "attempt_id": attempt_id,
             "run_id": run_id,
             "commit": commit,
             "model": m["name"], "model_revision": m.get("revision"),
@@ -487,7 +503,8 @@ def real_run(
             "condition_parse_failures": {c: sum(r["answer"] == "" for r in gens[c]) for c in gens},
             "stability_answers": by_qid,
             "attempt_dir": adir.name,
-            "elapsed_seconds": round(deadline.elapsed(), 1),
+            "wall_clock_elapsed_seconds": round(deadline.elapsed(), 1),
+            "wall_clock_cap_seconds": deadline.cap_seconds,
         }
 
         # Exclusive create: the final output can never replace an existing file.

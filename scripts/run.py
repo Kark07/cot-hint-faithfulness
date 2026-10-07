@@ -17,6 +17,7 @@ Outcome run (GATED — only after protocol review):
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -26,7 +27,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.runner import (  # noqa: E402
-    AttemptCollision, ComputeCapExceeded, attempt_dir_for, dry_run, real_run,
+    AttemptCollision, ComputeCapExceeded, attempt_dir_for, dry_run, filters_path_for, real_run,
 )
 
 SMOKE_MAX = 5
@@ -34,6 +35,21 @@ SMOKE_MAX = 5
 
 def _git(*args: str) -> str:
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+
+def _clear_smoke_scratch(out: Path) -> None:
+    """Remove the previous smoke test's gitignored scratch files.
+
+    The runner itself has no overwrite option; this helper only ever touches
+    results/_smoke.jsonl* and is never called for the outcome run.
+    """
+    if out.name != "_smoke.jsonl":
+        raise ValueError(f"refusing to clear a non-smoke path: {out}")
+    for p in (out, filters_path_for(out)):
+        if p.exists():
+            p.unlink()
+    if attempt_dir_for(out).exists():
+        shutil.rmtree(attempt_dir_for(out))
 
 
 def main() -> int:
@@ -89,11 +105,11 @@ def main() -> int:
             return 2
         out = ROOT / "results" / f"run-{_git('rev-parse', 'HEAD')}.jsonl"
 
-    # Smoke outputs are gitignored scratch and may be replaced; outcome attempts never are.
+    if smoke:
+        _clear_smoke_scratch(out)
     try:
         log = real_run(cfg, out, limit=args.limit, max_new_tokens=args.max_new_tokens,
-                       keep_filtered=smoke, replace_existing=smoke,
-                       commit=_git("rev-parse", "HEAD"))
+                       keep_filtered=smoke, commit=_git("rev-parse", "HEAD"))
     except AttemptCollision as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 3
