@@ -47,3 +47,7 @@ python analysis.py --input results/run-<commit_sha>.jsonl --summary-out results/
 ## Environment pins
 
 Exact pins live in `requirements.txt`. Model and dataset revisions are recorded in `FREEZE.json` at the freeze commit.
+
+## Active freeze
+
+The active pre-result freeze commit is `ACTIVE_FREEZE_PENDING`, recorded in `FREEZE.json` as `pre_result_commit_sha`. Earlier freezes, and why each was superseded before any outcome, are listed in `FREEZE.json` under `freeze_history`. `PROTOCOL.md` and `config/run.yaml` are unchanged since the original October 6 freeze (`861244905eede2cc183a07a5215b3a133e4f26fa`).

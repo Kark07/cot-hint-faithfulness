@@ -1,0 +1,86 @@
+Synthetic test receipt
+Date (UTC): 2026-10-07T05:44:46Z
+Code under test: commit 133effbc88add7828a115fdfb2249f3d84a4eaa9 (working tree clean; the freeze commit has the same source tree plus this receipt and freeze metadata)
+Command: python -m pytest -v -p no:cacheprovider
+Scope: synthetic fixtures, fake model and fake clock only. No model inference, no dataset download, no outcome run.
+Environment: Python 3.10.0, pytest 9.1.1 pydantic 2.10.6 Windows-10-10.0.26200-SP0
+Note: test_token_alignment_real_qwen_tokenizer loads the Qwen tokenizer files only (no model weights) and skips itself if they are unavailable.
+----------------------------------------------------------------------
+============================= test session starts =============================
+platform win32 -- Python 3.10.0, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Admin\AppData\Local\Programs\Python\Python310\python.exe
+rootdir: C:\Research\faithfulness\cot-hint-faithfulness
+plugins: anyio-4.4.0, asyncio-1.4.0, mock-3.15.1
+asyncio: mode=strict, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 70 items
+tests/test_dataset.py::test_load_fixtures_shape PASSED                   [  1%]
+tests/test_dataset.py::test_x_selector_picks_an_incorrect_letter PASSED  [  2%]
+tests/test_dataset.py::test_token_alignment_filter_keeps_all_when_aligner_ok PASSED [  4%]
+tests/test_dataset.py::test_token_alignment_filter_drops_all_when_aligner_fails PASSED [  5%]
+tests/test_dataset.py::test_stability_filter_drops_unstable PASSED       [  7%]
+tests/test_dataset.py::test_stability_filter_drops_unparseable PASSED    [  8%]
+tests/test_dataset.py::test_correctness_filter_keeps_only_matching_gold PASSED [ 10%]
+tests/test_dataset.py::test_question_rejects_bad_option_count PASSED     [ 11%]
+tests/test_dataset.py::test_question_rejects_bad_gold_idx PASSED         [ 12%]
+tests/test_metrics.py::test_wilson_known_values PASSED                   [ 14%]
+tests/test_metrics.py::test_wilson_zero_n PASSED                         [ 15%]
+tests/test_metrics.py::test_rejection_rule_fires_only_on_lower_ci PASSED [ 17%]
+tests/test_metrics.py::test_decide_three_zones PASSED                    [ 18%]
+tests/test_metrics.py::test_rejection_rule_defined_zero_sample PASSED    [ 20%]
+tests/test_prompts.py::test_question_fields PASSED                       [ 21%]
+tests/test_prompts.py::test_build_no_hint_has_no_persona PASSED          [ 22%]
+tests/test_prompts.py::test_build_biasing_requires_x_letter PASSED       [ 24%]
+tests/test_prompts.py::test_build_biasing_rejects_gold_as_x PASSED       [ 25%]
+tests/test_prompts.py::test_biasing_contains_hint_letter PASSED          [ 27%]
+tests/test_prompts.py::test_triplet_three_variants PASSED                [ 28%]
+tests/test_prompts.py::test_token_alignment_happy_path PASSED            [ 30%]
+tests/test_prompts.py::test_token_alignment_detects_mismatch PASSED      [ 31%]
+tests/test_prompts.py::test_select_hint_target_fallback PASSED           [ 32%]
+tests/test_prompts.py::test_select_hint_target_by_logits PASSED          [ 34%]
+tests/test_prompts.py::test_select_hint_target_rejects_wrong_length PASSED [ 35%]
+tests/test_prompts.py::test_templates_are_from_turpin_adapted PASSED     [ 37%]
+tests/test_prompts.py::test_token_alignment_real_qwen_tokenizer PASSED   [ 38%]
+tests/test_runner_durability.py::test_complete_run_writes_outputs_and_complete_record PASSED [ 40%]
+tests/test_runner_durability.py::test_collision_refused_before_any_inference[final] PASSED [ 41%]
+tests/test_runner_durability.py::test_collision_refused_before_any_inference[filters] PASSED [ 42%]
+tests/test_runner_durability.py::test_collision_refused_before_any_inference[attempt_dir] PASSED [ 44%]
+tests/test_runner_durability.py::test_second_run_after_success_is_refused_and_output_untouched PASSED [ 45%]
+tests/test_runner_durability.py::test_second_run_after_interrupted_attempt_is_refused PASSED [ 47%]
+tests/test_runner_durability.py::test_runner_has_no_overwrite_option PASSED [ 48%]
+tests/test_runner_durability.py::test_concurrent_claims_only_one_succeeds PASSED [ 50%]
+tests/test_runner_durability.py::test_failure_mid_generation_keeps_progress_and_failed_record PASSED [ 51%]
+tests/test_runner_durability.py::test_keyboard_interrupt_is_recorded_as_interrupted PASSED [ 52%]
+tests/test_runner_durability.py::test_progress_is_on_disk_before_the_run_ends PASSED [ 54%]
+tests/test_runner_durability.py::test_deadline_expires_inside_probe_loop PASSED [ 55%]
+tests/test_runner_durability.py::test_deadline_expires_inside_generation_batches PASSED [ 57%]
+tests/test_runner_durability.py::test_deadline_expires_after_final_condition PASSED [ 58%]
+tests/test_runner_durability.py::test_deadline_checked_at_finalize_even_with_all_batches_in_time PASSED [ 60%]
+tests/test_runner_durability.py::test_deadline_expires_during_final_biasing_condition PASSED [ 61%]
+tests/test_runner_durability.py::test_in_flight_generation_is_stopped_at_the_deadline PASSED [ 62%]
+tests/test_runner_durability.py::test_analysis_accepts_a_completed_attempt PASSED [ 64%]
+tests/test_runner_durability.py::test_analysis_refuses_failed_attempt_and_its_stage_files PASSED [ 65%]
+tests/test_runner_durability.py::test_analysis_refuses_deadline_expired_attempt PASSED [ 67%]
+tests/test_runner_durability.py::test_analysis_refuses_outcome_file_with_no_attempt_record PASSED [ 68%]
+tests/test_runner_durability.py::test_analysis_still_runs_on_fixture_dryrun_files PASSED [ 70%]
+tests/test_runner_durability.py::test_smoke_scratch_helper_only_touches_smoke_paths PASSED [ 71%]
+tests/test_scoring.py::test_extract_answer_cases[Reasoning... Answer: (B)-B] PASSED [ 72%]
+tests/test_scoring.py::test_extract_answer_cases[thought thought thought\nAnswer: (A)\n-A] PASSED [ 74%]
+tests/test_scoring.py::test_extract_answer_cases[Answer: C-C] PASSED     [ 75%]
+tests/test_scoring.py::test_extract_answer_cases[Answer:D-D] PASSED      [ 77%]
+tests/test_scoring.py::test_extract_answer_cases[answer: ( b )-B] PASSED [ 78%]
+tests/test_scoring.py::test_extract_answer_cases[the final answer is (A)-A] PASSED [ 80%]
+tests/test_scoring.py::test_extract_answer_cases[The answer is C.-C] PASSED [ 81%]
+tests/test_scoring.py::test_extract_answer_cases[I'd pick option (D)-D] PASSED [ 82%]
+tests/test_scoring.py::test_extract_answer_cases[Lots of options discussed: (A), (B), (C), but Answer: (B)-B] PASSED [ 84%]
+tests/test_scoring.py::test_extract_answer_cases[B-B] PASSED             [ 85%]
+tests/test_scoring.py::test_extract_answer_cases[(C)-C] PASSED           [ 87%]
+tests/test_scoring.py::test_extract_answer_cases[-] PASSED               [ 88%]
+tests/test_scoring.py::test_extract_answer_cases[no letter here at all-] PASSED [ 90%]
+tests/test_scoring.py::test_extract_answer_cases[Answer: (A)\n...\nActually, Answer: (C)-C] PASSED [ 91%]
+tests/test_scoring.py::test_extract_answer_cases[I considered (A) and (B) but Answer: (D)-D] PASSED [ 92%]
+tests/test_scoring.py::test_extract_answer_case_insensitive PASSED       [ 94%]
+tests/test_scoring.py::test_switched_to_hint_logic PASSED                [ 95%]
+tests/test_scoring.py::test_parse_failure_never_counts_as_switch PASSED  [ 97%]
+tests/test_scoring.py::test_neutral_shifted PASSED                       [ 98%]
+tests/test_scoring.py::test_safety_pass_benign PASSED                    [100%]
+tests/test_prompts.py::test_token_alignment_real_qwen_tokenizer
+======================= 70 passed, 2 warnings in 10.05s =======================

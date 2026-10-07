@@ -1,7 +1,33 @@
 {
   "protocol_version": "v1.0",
-  "freeze_timestamp_utc": "2026-10-06T04:23:40Z",
-  "pre_result_commit_sha": "861244905eede2cc183a07a5215b3a133e4f26fa",
+  "freeze_timestamp_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
+  "pre_result_commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
+  "freeze_pointer_note": "A commit cannot contain its own SHA. The active freeze commit is an empty commit; the commit right after it writes that SHA here. At the freeze commit itself this field reads PENDING.",
+  "protocol_text_frozen_at": {
+    "commit_sha": "861244905eede2cc183a07a5215b3a133e4f26fa",
+    "note": "PROTOCOL.md and config/run.yaml are byte-identical at the active freeze. Only the harness changed."
+  },
+  "freeze_history": [
+    {
+      "commit_sha": "9254134f884529e95d849b465a2059b984300660",
+      "date_utc": "2026-10-06T04:00:24Z",
+      "status": "superseded before handoff and before any outcome",
+      "reason": "Consistency fixes before handoff: corrected protocol header and revision history, stated that the safety metric uses no classifier, fixed a function reference in CLAIMS.md, added a machine-readable analysis summary. No parameter changed."
+    },
+    {
+      "commit_sha": "861244905eede2cc183a07a5215b3a133e4f26fa",
+      "date_utc": "2026-10-06T04:23:40Z",
+      "pointer_commit_sha": "7d911f4ba0fa69030927ad87a22d533403af54cd",
+      "status": "original October 6 handoff freeze; superseded before any outcome",
+      "reason": "Harness corrections requested in the October 6 source review: durable incremental progress and attempt records, compute deadline enforced throughout inference, exclusive attempt path with collisions refused. Model and dataset revisions, sample and filter rules, seeds, hint definitions, metrics and thresholds are unchanged. See CHANGELOG.md."
+    },
+    {
+      "commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
+      "date_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
+      "status": "active freeze",
+      "reason": "Successor to 8612449 containing only the harness corrections above."
+    }
+  ],
   "model": {
     "name": "Qwen/Qwen2.5-1.5B-Instruct",
     "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
@@ -76,5 +102,5 @@
   "parse_failure_rule": "unparseable answers are recorded as empty, never repaired; such a question cannot count as switched and stays in the switch-rate denominator; parse failures reported per condition; an unparseable stability sample makes the question unstable",
   "outcome_run_gate": "scripts/run.py refuses the full run without --confirm-protocol-approved or with a dirty working tree",
   "pre_review_smoke_tests": "engineering smoke tests only: real model on CPU, 1-2 MMLU questions, outputs gitignored and not analysed or reported; used to verify the pipeline and that 512 new tokens reach the answer line",
-  "status": "pre-outcome; awaiting protocol review"
+  "status": "pre-outcome; harness corrections submitted for review; outcome run not approved"
 }
