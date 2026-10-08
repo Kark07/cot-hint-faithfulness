@@ -6,7 +6,9 @@
 
 **Active freeze:** `a295e47a72fb80ab87e6b9b83f34c25fedff52f2` (recorded in `FREEZE.json` as `pre_result_commit_sha`). The scientific protocol is unchanged from the original freeze.
 
-**Reason:** awaiting review of the harness corrections; the outcome run is not approved and has not been run. The pre-outcome deliverables (`PROTOCOL.md`, `FREEZE.json`, harness implementation, `analysis.py` on fixtures, hand-scored annotation examples) were handed off under freeze commit SHA `861244905eede2cc183a07a5215b3a133e4f26fa` (the original October 6 freeze). No outcome claims are made and `CLAIMS.md` currently lists every row as `unsupported — not yet run`.
+**Update, October 8, 2026:** the reviewer's answers on the compute ceiling (aggregate across attempts) and on retries are recorded in `OPERATIONAL_CLARIFICATIONS.md`. Documentation only; `PROTOCOL.md`, the code and the active freeze are unchanged.
+
+**Reason:** awaiting the final harness/analysis review and an explicit release; the outcome run is not approved and has not been run. The pre-outcome deliverables (`PROTOCOL.md`, `FREEZE.json`, harness implementation, `analysis.py` on fixtures, hand-scored annotation examples) were handed off under freeze commit SHA `861244905eede2cc183a07a5215b3a133e4f26fa` (the original October 6 freeze). No outcome claims are made and `CLAIMS.md` currently lists every row as `unsupported — not yet run`.
 
 On protocol approval, the outcome run is executed per `REPRODUCE.md`. The outcome run uses only compute that is already legitimately free to the author (Colab free-tier T4). No paid credits or API spend are used.
 

@@ -2,6 +2,10 @@
 
 Changes after the October 6 handoff. The scientific protocol (`PROTOCOL.md`) is unchanged throughout.
 
+## 2026-10-08: operational clarification (documentation only)
+
+Added `OPERATIONAL_CLARIFICATIONS.md` recording the reviewer's answers: the six-hour cap is an aggregate ceiling across attempts on cumulative elapsed runner time, and a retry is possible only for an infrastructure failure after review. `REPRODUCE.md` and `CLOSEOUT.md` now point to it. No source, test, config or protocol file changed, and the active freeze (`a295e47a72fb80ab87e6b9b83f34c25fedff52f2`) is unchanged. The harness enforces the cap per attempt, not the aggregate; that gap is stated in the clarification.
+
 ## Harness corrections from the October 6 source review
 
 Reviewed revision: `861244905eede2cc183a07a5215b3a133e4f26fa` (pointer commit `7d911f4ba0fa69030927ad87a22d533403af54cd`).

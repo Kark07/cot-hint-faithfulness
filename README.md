@@ -12,6 +12,8 @@ A reproducible test of whether final-output evaluation misses hint-driven, unack
 - `CLAIMS.md` — claim → evidence mapping (all rows currently *unsupported — not yet run*).
 - `REPRODUCE.md` — shortest clean path to reproduce (fixture dry-run today; gated outcome run after review).
 - `CLOSEOUT.md` — status note.
+- `OPERATIONAL_CLARIFICATIONS.md` — dated operating rules recorded after the freeze (compute ceiling, retries); the protocol itself is not edited.
+- `CHANGELOG.md` — changes since the October 6 handoff.
 - `analysis.py` — the exact analysis script that would produce reported numbers.
 - `src/` — harness implementation.
 - `tests/` — engineering tests on synthetic fixtures.
