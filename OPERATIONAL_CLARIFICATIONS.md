@@ -17,7 +17,7 @@ Where this file and an older operational description (for example in `REPRODUCE.
 - The six-hour cap (`PROTOCOL.md` §2.3 and §6; `compute.gpu_hour_cap` in `config/run.yaml`) is a single ceiling for this frozen comparison **across all attempts**, including failed and interrupted attempts. It is not a fresh allowance for each attempt or for each commit.
 - The operational limit is **cumulative elapsed runner time**: the sum, over every attempt, of the wall-clock time recorded in that attempt's `attempt.json` (`elapsed_seconds`), measured from the start of the attempt and including model and dataset loading. This is deliberately conservative.
 - Cumulative elapsed runner time is **not** a metered GPU-hour measurement and is not reported as one. Any overshoot past the ceiling is recorded (`wall_clock_overshoot_seconds`) and reported.
-- For an attempt that was killed without a terminal record (status left as `running`), the last recorded `elapsed_seconds` understates the time used. Its elapsed time is then taken as the interval from `started_utc` to the latest modification time of any file in its attempt directory, and this is stated when the budget is reported.
+- ~~For an attempt that was killed without a terminal record (status left as `running`), the last recorded `elapsed_seconds` understates the time used. Its elapsed time is then taken as the interval from `started_utc` to the latest modification time of any file in its attempt directory, and this is stated when the budget is reported.~~ **Superseded on 2026-10-09 by C3 below.** This bullet was the author's own addition, not the reviewer's wording, and the reviewer corrected it. The original text is kept here struck through as a record.
 - No paid compute is approved.
 
 ### C2. Retries
@@ -37,3 +37,21 @@ Where this file and an older operational description (for example in `REPRODUCE.
 ### Limitation restated
 
 The safety field in this comparison is not an empirical safety assessment. The task is benign and no safety classifier is run, so it does not establish safety performance (`PROTOCOL.md` §5, M4).
+
+---
+
+## 2026-10-09 — Elapsed time after an unclean termination (corrects one bullet of C1)
+
+**Source:** reviewer's reply to the 2026-10-08 entry (commit `3fb899e30dcb3417a162f23b9819425b3bd81846`). The reviewer confirmed that the aggregate six-hour ceiling, the infrastructure-only retry rule and the no-paid-compute restriction are consistent with what was asked, and corrected one accounting detail that the author had added.
+
+**Status of this entry:** documentation only. No source, test, config or protocol file is changed, the active freeze remains `a295e47a72fb80ab87e6b9b83f34c25fedff52f2`, and no code change was requested. This entry is not an outcome-run release.
+
+### C3. Accounting for an attempt that ended without a terminal record
+
+This replaces the struck-through bullet in C1.
+
+- After an unclean termination (for example a lost session that leaves `attempt.json` at status `running`), the last file-write timestamp in the attempt directory is only a **lower bound** on elapsed runtime. It is not used as the elapsed time.
+- Where a recorded process or session termination time is available (for example from the compute platform's session or runtime log), that time is used as the end of the attempt, and the evidence is preserved alongside the attempt record. The attempt's own files are not modified.
+- Where the end time is unknown, the attempt's elapsed time is labelled **uncertain**. The unobserved interval after the last file write is not treated as unused retry budget.
+- Any retry remains blocked until a conservative remaining-budget calculation, made on this basis, has been reviewed by the reviewer (see C2).
+

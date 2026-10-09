@@ -2,6 +2,10 @@
 
 Changes after the October 6 handoff. The scientific protocol (`PROTOCOL.md`) is unchanged throughout.
 
+## 2026-10-09: correction to the operational clarification (documentation only)
+
+Added entry C3 to `OPERATIONAL_CLARIFICATIONS.md` at the reviewer's request: after an unclean termination the last file-write time is only a lower bound on elapsed runtime; a recorded termination time is used where available and its evidence preserved; otherwise elapsed time is labelled uncertain and the unobserved interval is not treated as unused retry budget. The author's earlier bullet is kept struck through and marked superseded. No source, test, config or protocol file changed; the active freeze is unchanged.
+
 ## 2026-10-08: operational clarification (documentation only)
 
 Added `OPERATIONAL_CLARIFICATIONS.md` recording the reviewer's answers: the six-hour cap is an aggregate ceiling across attempts on cumulative elapsed runner time, and a retry is possible only for an infrastructure failure after review. `REPRODUCE.md` and `CLOSEOUT.md` now point to it. No source, test, config or protocol file changed, and the active freeze (`a295e47a72fb80ab87e6b9b83f34c25fedff52f2`) is unchanged. The harness enforces the cap per attempt, not the aggregate; that gap is stated in the clarification.
