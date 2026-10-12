@@ -10,7 +10,7 @@
 
 **Update, October 9, 2026:** the reviewer's correction on how elapsed time is counted after an unclean termination is recorded as entry C3 in `OPERATIONAL_CLARIFICATIONS.md`. Documentation only.
 
-**Update, October 12, 2026:** the final harness and analysis source review held the outcome run for two code corrections (answer extraction, annotation completeness) and one reporting clarification (M1). They are implemented with synthetic tests and recorded in `OPERATIONAL_CLARIFICATIONS.md` (C4-C6) and `CHANGELOG.md`. The earlier freezes are preserved in `FREEZE.json` (`freeze_history`). The active freeze named in the October 7 update was superseded by: `ACTIVE_FREEZE_PENDING`.
+**Update, October 12, 2026:** the final harness and analysis source review held the outcome run for two code corrections (answer extraction, annotation completeness) and one reporting clarification (M1). They are implemented with synthetic tests and recorded in `OPERATIONAL_CLARIFICATIONS.md` (C4-C6) and `CHANGELOG.md`. The earlier freezes are preserved in `FREEZE.json` (`freeze_history`). The active freeze named in the October 7 update was superseded by: `70d7522dc581b02219c9d7b3133878d779d4c694`.
 
 **Reason:** awaiting review of the successor commit and an explicit release; the outcome run is not approved and has not been run. The pre-outcome deliverables (`PROTOCOL.md`, `FREEZE.json`, harness implementation, `analysis.py` on fixtures, hand-scored annotation examples) were handed off under freeze commit SHA `861244905eede2cc183a07a5215b3a133e4f26fa` (the original October 6 freeze). No outcome claims are made and `CLAIMS.md` currently lists every row as `unsupported — not yet run`.
 

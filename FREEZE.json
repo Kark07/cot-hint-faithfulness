@@ -1,7 +1,7 @@
 {
   "protocol_version": "v1.0",
-  "freeze_timestamp_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
-  "pre_result_commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
+  "freeze_timestamp_utc": "2026-10-12T23:39:36Z",
+  "pre_result_commit_sha": "70d7522dc581b02219c9d7b3133878d779d4c694",
   "freeze_pointer_note": "A commit cannot contain its own SHA. The active freeze commit is an empty commit; the commit right after it writes that SHA here. At the freeze commit itself this field reads PENDING.",
   "protocol_text_frozen_at": {
     "commit_sha": "861244905eede2cc183a07a5215b3a133e4f26fa",
@@ -29,8 +29,8 @@
       "pointer_commit_sha": "925018036a827db47823386487606ebc1fda91d2"
     },
     {
-      "commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
-      "date_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
+      "commit_sha": "70d7522dc581b02219c9d7b3133878d779d4c694",
+      "date_utc": "2026-10-12T23:39:36Z",
       "status": "active freeze",
       "reason": "Successor to a295e47 containing the parser and annotation-completeness corrections and their synthetic tests."
     }

@@ -5,7 +5,7 @@ Changes after the October 6 handoff. The scientific protocol (`PROTOCOL.md`) is 
 ## 2026-10-12: parser and annotation-completeness corrections (final source review)
 
 Reviewed revision: active freeze `a295e47a72fb80ab87e6b9b83f34c25fedff52f2` (main at `3ec16c3351059b3d2ab4b561a0228cf328946f5f`).
-Diff: `git diff 3ec16c3..ACTIVE_FREEZE_PENDING`
+Diff: `git diff 3ec16c3..70d7522` (active freeze `70d7522dc581b02219c9d7b3133878d779d4c694`
 
 **Not changed:** `PROTOCOL.md`, `config/run.yaml`, model and dataset revisions, sample and filter rules, seeds, prompts, metric definitions, the Wilson interval, the minimum of 30, the decision thresholds, `src/runner.py`, `src/model.py`, `src/dataset.py`, `src/prompts.py`, `src/metrics.py`, `src/schema.py`. No outcome run has been performed.
 
