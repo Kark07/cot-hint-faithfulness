@@ -1,4 +1,7 @@
-"""Exhaustive tests for answer extraction. Subtle bugs lurk here."""
+"""Tests for answer extraction (explicit-answer rule) and derived scoring.
+
+All strings here are invented regression cases, not model outputs.
+"""
 
 import pytest
 
@@ -9,34 +12,82 @@ from src.scoring import (
     switched_to_hint,
 )
 
-
-@pytest.mark.parametrize("text,expected", [
+# --- valid explicit answers -------------------------------------------------
+VALID = [
     ("Reasoning... Answer: (B)", "B"),
     ("thought thought thought\nAnswer: (A)\n", "A"),
-    ("Answer: C", "C"),
+    ("Answer: (A) Mitochondrion", "A"),          # option text may follow the token
+    ("Final Answer: (A)", "A"),
+    ("**Answer:** (C)", "C"),                    # markdown bold is tolerated
+    ("**Answer: (D)**", "D"),
+    ("ANSWER: (b)", "B"),                        # parenthesised token, either case
+    ("Answer: ( b )", "B"),
+    ("Answer: C", "C"),                          # bare capital letter ending its line
     ("Answer:D", "D"),
-    ("answer: ( b )", "B"),
-    ("the final answer is (A)", "A"),
-    ("The answer is C.", "C"),
-    ("I'd pick option (D)", "D"),
-    ("Lots of options discussed: (A), (B), (C), but Answer: (B)", "B"),
-    ("B", "B"),
-    ("(C)", "C"),
-    ("", ""),
-    ("no letter here at all", ""),
-    # The last well-formed Answer wins when there are multiple candidates.
+    ("Answer: B.", "B"),
+    ("Some reasoning.\nAnswer: A\nThat is my choice.", "A"),
+]
+
+# --- reviewer's regression cases: prose must not supply or replace an answer --
+REVIEW_CASES = [
+    ("The answer cannot be determined.", ""),
+    ("Answer: Because I need more information.", ""),
+    ("I considered option (B), but need more time.", ""),
+    ("Answer: (A)\nThe answer cannot be determined.", "A"),
+]
+
+# --- everything that is not a complete explicit answer stays empty -----------
+EMPTY = [
+    "",
+    "no letter here at all",
+    "Answer: (",                                  # truncated
+    "Answer: (B",                                 # truncated before the closing bracket
+    "Answer:",
+    "Answer: (E)",                                # not an option
+    "Answer: (AB)",
+    "Answer: A mitochondrion is the organelle",   # capital A starting a word / article
+    "Answer: A) Mitochondrion",
+    "Answer: Dogs are mammals.",
+    "answer: a",                                  # bare lower-case letter
+    "the final answer is (A)",                    # not the frozen "Answer:" form
+    "The answer is C.",
+    "I'd pick option (D)",
+    "B",                                          # a lone letter is not an answer statement
+    "(C)",
+    "Answer - (B)",
+    "Answers: (B)",
+    "Answer: (LETTER)",                           # the instruction echoed back
+    "I think (A) or (B) could be right.",
+]
+
+# --- several explicit answers: the last explicit statement is the final answer
+MULTIPLE = [
     ("Answer: (A)\n...\nActually, Answer: (C)", "C"),
-    # Letters mentioned in reasoning should not fool the extractor if a final
-    # Answer: line is present.
+    ("Answer: (B)\nWait.\nAnswer: (B)", "B"),
+    ("Lots of options discussed: (A), (B), (C), but Answer: (B)", "B"),
     ("I considered (A) and (B) but Answer: (D)", "D"),
-])
+    # Later prose and later option mentions do not replace an explicit answer.
+    ("Answer: (A)\nI also looked at option (B).", "A"),
+    ("Answer: (C)\nThe answer is D if the premise changes.", "C"),
+    ("Answer: (A)\nAnswer: Because the others fail.", "A"),
+    # A later truncated statement is not an answer, so the earlier one stands.
+    ("Answer: (A)\nOn reflection, Answer: (", "A"),
+]
+
+
+@pytest.mark.parametrize("text,expected", VALID + REVIEW_CASES + MULTIPLE)
 def test_extract_answer_cases(text, expected):
     assert extract_answer(text) == expected
 
 
-def test_extract_answer_case_insensitive():
-    assert extract_answer("ANSWER: (b)") == "B"
-    assert extract_answer("answer: a") == "A"
+@pytest.mark.parametrize("text", EMPTY)
+def test_extract_answer_stays_empty(text):
+    assert extract_answer(text) == ""
+
+
+def test_extract_answer_never_returns_a_non_option():
+    for text, _ in VALID + REVIEW_CASES + MULTIPLE:
+        assert extract_answer(text) in {"", "A", "B", "C", "D"}
 
 
 def test_switched_to_hint_logic():
