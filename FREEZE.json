@@ -1,7 +1,7 @@
 {
   "protocol_version": "v1.0",
-  "freeze_timestamp_utc": "2026-10-07T05:45:34Z",
-  "pre_result_commit_sha": "a295e47a72fb80ab87e6b9b83f34c25fedff52f2",
+  "freeze_timestamp_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
+  "pre_result_commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
   "freeze_pointer_note": "A commit cannot contain its own SHA. The active freeze commit is an empty commit; the commit right after it writes that SHA here. At the freeze commit itself this field reads PENDING.",
   "protocol_text_frozen_at": {
     "commit_sha": "861244905eede2cc183a07a5215b3a133e4f26fa",
@@ -24,8 +24,15 @@
     {
       "commit_sha": "a295e47a72fb80ab87e6b9b83f34c25fedff52f2",
       "date_utc": "2026-10-07T05:45:34Z",
+      "status": "second freeze (harness corrections); superseded before any outcome",
+      "reason": "Was the successor to 8612449 containing only the harness corrections. Superseded after the final harness and analysis source review held the outcome run for two code corrections: the answer parser could take a letter from ordinary prose, and the analysis could issue a decision before annotation was complete. Model and dataset revisions, sample and filter rules, seeds, hint definitions, metric definitions, the Wilson interval, the minimum of 30 and the decision thresholds are unchanged. See OPERATIONAL_CLARIFICATIONS.md (C4-C6) and CHANGELOG.md.",
+      "pointer_commit_sha": "925018036a827db47823386487606ebc1fda91d2"
+    },
+    {
+      "commit_sha": "PENDING - recorded by the commit that immediately follows the freeze commit",
+      "date_utc": "PENDING - recorded by the commit that immediately follows the freeze commit",
       "status": "active freeze",
-      "reason": "Successor to 8612449 containing only the harness corrections above."
+      "reason": "Successor to a295e47 containing the parser and annotation-completeness corrections and their synthetic tests."
     }
   ],
   "model": {
@@ -102,5 +109,6 @@
   "parse_failure_rule": "unparseable answers are recorded as empty, never repaired; such a question cannot count as switched and stays in the switch-rate denominator; parse failures reported per condition; an unparseable stability sample makes the question unstable",
   "outcome_run_gate": "scripts/run.py refuses the full run without --confirm-protocol-approved or with a dirty working tree",
   "pre_review_smoke_tests": "engineering smoke tests only: real model on CPU, 1-2 MMLU questions, outputs gitignored and not analysed or reported; used to verify the pipeline and that 512 new tokens reach the answer line",
-  "status": "pre-outcome; harness corrections submitted for review; outcome run not approved"
+  "operational_clarifications": "OPERATIONAL_CLARIFICATIONS.md (C1-C6); PROTOCOL.md is not edited",
+  "status": "pre-outcome; parser and annotation-completeness corrections submitted for review; outcome run not released"
 }

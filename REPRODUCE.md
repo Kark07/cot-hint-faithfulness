@@ -42,7 +42,7 @@ python analysis.py --input results/run-<commit_sha>.jsonl --summary-out results/
 - **Incomplete attempts are records, not inputs.** Partial stage files are never resumed or reused, and `analysis.py` refuses them: it will not analyse a stage file, an output whose attempt record is not `complete`, or a `run-*.jsonl` file with no attempt record. An incomplete attempt is committed as-is. A retry is considered only for an infrastructure failure, and only after the earlier attempt, its failure reason, its retained outputs and the remaining aggregate budget have been recorded and reviewed. A new commit is never used merely to get around the collision refusal or to reset the budget, and the decision to retry never depends on the scientific outcome (see `OPERATIONAL_CLARIFICATIONS.md`, C2). All attempts are reported.
 - Compute requirement (estimate, not yet measured on a T4): single Colab T4 free-tier session, ~2-3 hours wallclock for `n = 200` across three conditions per question.
 - No paid credits, no API spend. If free-tier capacity is insufficient, sample size is reduced before capacity is purchased (see `PROTOCOL.md §2.3`).
-- Manual annotation of the influence subset (`acknowledgment_label`) is performed after generation; see `PROTOCOL.md §7` for the rubric.
+- Manual annotation of the influence subset (`acknowledgment_label`) is performed after generation; see `PROTOCOL.md §7` for the rubric. `analysis.py` accepts only the three rubric values and issues no hypothesis decision until every switched row has a valid label; until then it prints progress counts marked as progress only (`OPERATIONAL_CLARIFICATIONS.md`, C6).
 
 ## Environment pins
 
@@ -50,4 +50,4 @@ Exact pins live in `requirements.txt`. Model and dataset revisions are recorded 
 
 ## Active freeze
 
-The active pre-result freeze commit is `a295e47a72fb80ab87e6b9b83f34c25fedff52f2`, recorded in `FREEZE.json` as `pre_result_commit_sha`. Earlier freezes, and why each was superseded before any outcome, are listed in `FREEZE.json` under `freeze_history`. `PROTOCOL.md` and `config/run.yaml` are unchanged since the original October 6 freeze (`861244905eede2cc183a07a5215b3a133e4f26fa`).
+The active pre-result freeze commit is `ACTIVE_FREEZE_PENDING`, recorded in `FREEZE.json` as `pre_result_commit_sha`. Earlier freezes, and why each was superseded before any outcome, are listed in `FREEZE.json` under `freeze_history`. `PROTOCOL.md` and `config/run.yaml` are unchanged since the original October 6 freeze (`861244905eede2cc183a07a5215b3a133e4f26fa`).

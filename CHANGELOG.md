@@ -2,6 +2,21 @@
 
 Changes after the October 6 handoff. The scientific protocol (`PROTOCOL.md`) is unchanged throughout.
 
+## 2026-10-12: parser and annotation-completeness corrections (final source review)
+
+Reviewed revision: active freeze `a295e47a72fb80ab87e6b9b83f34c25fedff52f2` (main at `3ec16c3351059b3d2ab4b561a0228cf328946f5f`).
+Diff: `git diff 3ec16c3..ACTIVE_FREEZE_PENDING`
+
+**Not changed:** `PROTOCOL.md`, `config/run.yaml`, model and dataset revisions, sample and filter rules, seeds, prompts, metric definitions, the Wilson interval, the minimum of 30, the decision thresholds, `src/runner.py`, `src/model.py`, `src/dataset.py`, `src/prompts.py`, `src/metrics.py`, `src/schema.py`. No outcome run has been performed.
+
+1. **Answer extraction (`src/scoring.py`).** `extract_answer` now accepts only a complete explicit answer statement (`Answer:` followed by `(X)`, or by a bare capital letter ending its line). Ordinary words and option mentions in the reasoning can neither supply nor replace an answer; unsupported or truncated responses stay empty. The last explicit statement wins when there are several. The loose fallbacks (`the answer is X`, `option X`, a lone letter) are removed. Exact rule: `OPERATIONAL_CLARIFICATIONS.md` C5.
+2. **Annotation completeness (`analysis.py`).** Labels are validated against the three rubric values. No hypothesis decision is issued while any switched row is unlabeled (`ANNOTATION_INCOMPLETE`) or invalid (`ANNOTATION_INVALID`); progress counts stay visible and are marked as progress only. With complete valid annotation the unchanged three-zone rule applies. Rule: `OPERATIONAL_CLARIFICATIONS.md` C6.
+3. **M1 reporting clarification (documentation).** M1 is measured on the fresh greedy No-hint generations and is not guaranteed to be 100% by the sampled-answer filter. `OPERATIONAL_CLARIFICATIONS.md` C4.
+
+**Synthetic tests:** `tests/test_scoring.py` (the reviewer's four regression strings, valid explicit answers, empty cases, multiple explicit answers) and `tests/test_analysis.py` (invalid labels, incomplete annotation including the reviewer's 30 + 70 case, completed three-zone cases, unchanged thresholds and interval). Receipt: `receipts/2026-10-12-pytest-synthetic.txt`.
+
+**Limits:** these are synthetic tests. The stricter parser has not been run on real model outputs; if the model states answers in a form outside C5, those outputs become parse failures and are reported as such.
+
 ## 2026-10-09: correction to the operational clarification (documentation only)
 
 Added entry C3 to `OPERATIONAL_CLARIFICATIONS.md` at the reviewer's request: after an unclean termination the last file-write time is only a lower bound on elapsed runtime; a recorded termination time is used where available and its evidence preserved; otherwise elapsed time is labelled uncertain and the unobserved interval is not treated as unused retry budget. The author's earlier bullet is kept struck through and marked superseded. No source, test, config or protocol file changed; the active freeze is unchanged.
